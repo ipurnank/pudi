@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -36,17 +36,17 @@ export default function Dashboard() {
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
 
-  useEffect(() => {
-    loadData();
-  }, [selectedMonth]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     await Promise.all([
       fetchMonthlyAnalytics(selectedMonth.year, selectedMonth.month),
       fetchLastSixMonths(),
       fetchCategories(),
     ]);
-  };
+  }, [selectedMonth, fetchMonthlyAnalytics, fetchLastSixMonths, fetchCategories]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -59,7 +59,6 @@ export default function Dashboard() {
     return months[month - 1];
   };
 
-  // Prepare pie chart data
   const pieData = monthlyAnalytics?.category_breakdown
     ? Object.entries(monthlyAnalytics.category_breakdown).map(([name, value], index) => {
         const category = categories.find((c) => c.name === name);
@@ -71,34 +70,17 @@ export default function Dashboard() {
       })
     : [];
 
-  // Prepare bar chart data
   const barData = lastSixMonths.flatMap((item) => [
-    {
-      value: item.expense,
-      label: item.month,
-      frontColor: colors.danger,
-      spacing: 2,
-    },
-    {
-      value: item.income,
-      frontColor: colors.success,
-      spacing: 18,
-    },
+    { value: item.expense, label: item.month, frontColor: colors.danger, spacing: 2 },
+    { value: item.income, frontColor: colors.success, spacing: 18 },
   ]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setSelectedMonth((prev) => {
       let newMonth = prev.month + (direction === 'next' ? 1 : -1);
       let newYear = prev.year;
-
-      if (newMonth > 12) {
-        newMonth = 1;
-        newYear += 1;
-      } else if (newMonth < 1) {
-        newMonth = 12;
-        newYear -= 1;
-      }
-
+      if (newMonth > 12) { newMonth = 1; newYear += 1; }
+      else if (newMonth < 1) { newMonth = 12; newYear -= 1; }
       return { year: newYear, month: newMonth };
     });
   };
@@ -107,19 +89,13 @@ export default function Dashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Dashboard</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Track your finances
-          </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Track your finances</Text>
         </View>
 
-        {/* Month Selector */}
         <View style={[styles.monthSelector, { backgroundColor: colors.card }]}>
           <TouchableOpacity onPress={() => navigateMonth('prev')} style={styles.monthNav}>
             <Ionicons name="chevron-back" size={24} color={colors.primary} />
@@ -136,10 +112,8 @@ export default function Dashboard() {
           <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
         ) : (
           <>
-            {/* Overview Card */}
             <View style={[styles.overviewCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.cardTitle, { color: colors.text }]}>Monthly Overview</Text>
-              
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <View style={[styles.statIcon, { backgroundColor: colors.success + '20' }]}>
@@ -150,7 +124,6 @@ export default function Dashboard() {
                     {formatIndianRupee(monthlyAnalytics?.total_income || 0)}
                   </Text>
                 </View>
-
                 <View style={styles.statItem}>
                   <View style={[styles.statIcon, { backgroundColor: colors.danger + '20' }]}>
                     <Ionicons name="arrow-up" size={20} color={colors.danger} />
@@ -161,21 +134,10 @@ export default function Dashboard() {
                   </Text>
                 </View>
               </View>
-
               <View style={[styles.balanceRow, { borderTopColor: colors.border }]}>
                 <View style={styles.balanceItem}>
                   <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Net Balance</Text>
-                  <Text
-                    style={[
-                      styles.balanceValue,
-                      {
-                        color:
-                          (monthlyAnalytics?.net_balance || 0) >= 0
-                            ? colors.success
-                            : colors.danger,
-                      },
-                    ]}
-                  >
+                  <Text style={[styles.balanceValue, { color: (monthlyAnalytics?.net_balance || 0) >= 0 ? colors.success : colors.danger }]}>
                     {formatIndianRupee(monthlyAnalytics?.net_balance || 0)}
                   </Text>
                 </View>
@@ -188,7 +150,6 @@ export default function Dashboard() {
               </View>
             </View>
 
-            {/* Expense Breakdown */}
             {pieData.length > 0 && (
               <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Expense Breakdown</Text>
@@ -200,9 +161,7 @@ export default function Dashboard() {
                     innerRadius={50}
                     centerLabelComponent={() => (
                       <View style={styles.pieCenter}>
-                        <Text style={[styles.pieCenterText, { color: colors.textSecondary }]}>
-                          Total
-                        </Text>
+                        <Text style={[styles.pieCenterText, { color: colors.textSecondary }]}>Total</Text>
                         <Text style={[styles.pieCenterValue, { color: colors.text }]}>
                           {formatCompactIndianRupee(monthlyAnalytics?.total_expense || 0)}
                         </Text>
@@ -214,19 +173,14 @@ export default function Dashboard() {
                   {pieData.map((item, index) => (
                     <View key={index} style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                      <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-                        {item.text}
-                      </Text>
-                      <Text style={[styles.legendValue, { color: colors.text }]}>
-                        {formatCompactIndianRupee(item.value)}
-                      </Text>
+                      <Text style={[styles.legendText, { color: colors.textSecondary }]}>{item.text}</Text>
+                      <Text style={[styles.legendValue, { color: colors.text }]}>{formatCompactIndianRupee(item.value)}</Text>
                     </View>
                   ))}
                 </View>
               </View>
             )}
 
-            {/* 6 Month Trend */}
             {barData.length > 0 && (
               <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>6 Month Trend</Text>
@@ -262,14 +216,11 @@ export default function Dashboard() {
               </View>
             )}
 
-            {/* Empty State */}
             {!pieData.length && !barData.length && (
               <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
                 <Ionicons name="wallet-outline" size={64} color={colors.textSecondary} />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>No transactions yet</Text>
-                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  Add your first transaction to see analytics
-                </Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Add your first transaction to see analytics</Text>
               </View>
             )}
           </>
@@ -280,174 +231,38 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginTop: 4,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginVertical: 16,
-    padding: 12,
-    borderRadius: 12,
-  },
-  monthNav: {
-    padding: 8,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  loader: {
-    marginTop: 50,
-  },
-  overviewCard: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-  },
-  balanceItem: {
-    alignItems: 'center',
-  },
-  balanceLabel: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  balanceValue: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  chartCard: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  pieContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  pieCenter: {
-    alignItems: 'center',
-  },
-  pieCenterText: {
-    fontSize: 12,
-  },
-  pieCenterValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendText: {
-    fontSize: 12,
-    marginRight: 4,
-  },
-  legendValue: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  barLegend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 16,
-  },
-  barLegendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  emptyState: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  title: { fontSize: 32, fontWeight: '700' },
+  subtitle: { fontSize: 16, marginTop: 4 },
+  monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20, marginVertical: 16, padding: 12, borderRadius: 12 },
+  monthNav: { padding: 8 },
+  monthText: { fontSize: 18, fontWeight: '600' },
+  loader: { marginTop: 50 },
+  overviewCard: { marginHorizontal: 20, borderRadius: 16, padding: 20, marginBottom: 16 },
+  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  statItem: { alignItems: 'center' },
+  statIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  statLabel: { fontSize: 13, marginBottom: 4 },
+  statValue: { fontSize: 18, fontWeight: '700' },
+  balanceRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, paddingTop: 20, borderTopWidth: 1 },
+  balanceItem: { alignItems: 'center' },
+  balanceLabel: { fontSize: 13, marginBottom: 4 },
+  balanceValue: { fontSize: 22, fontWeight: '700' },
+  chartCard: { marginHorizontal: 20, borderRadius: 16, padding: 20, marginBottom: 16 },
+  pieContainer: { alignItems: 'center', marginVertical: 16 },
+  pieCenter: { alignItems: 'center' },
+  pieCenterText: { fontSize: 12 },
+  pieCenterValue: { fontSize: 16, fontWeight: '700' },
+  legendContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
+  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
+  legendText: { fontSize: 12, marginRight: 4 },
+  legendValue: { fontSize: 12, fontWeight: '600' },
+  barLegend: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 16 },
+  barLegendItem: { flexDirection: 'row', alignItems: 'center' },
+  emptyState: { marginHorizontal: 20, borderRadius: 16, padding: 40, alignItems: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', marginTop: 16 },
+  emptySubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center' },
 });
