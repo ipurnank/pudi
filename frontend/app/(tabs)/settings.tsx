@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { resetAllData, exportCSV } = useStore();
+  const { exportCSV } = useStore();
   const [isExporting, setIsExporting] = useState(false);
 
   const handleResetData = () => {
