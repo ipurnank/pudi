@@ -87,34 +87,41 @@ export default function TransactionsScreen() {
   };
 
   const renderTransaction = ({ item }: { item: Transaction }) => (
-    <TouchableOpacity
-      style={[styles.transactionItem, { backgroundColor: colors.card }]}
-      onPress={() => handleEdit(item)}
-      onLongPress={() => handleDelete(item.id)}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: getCategoryColor(item.category_id) + '20' }]}>
-        <Text style={styles.categoryIcon}>{getCategoryIcon(item.category_id)}</Text>
-      </View>
-      <View style={styles.transactionDetails}>
-        <Text style={[styles.categoryName, { color: colors.text }]}>{item.category_name}</Text>
-        <Text style={[styles.transactionNote, { color: colors.textSecondary }]}>
-          {item.note || format(new Date(item.date), 'dd MMM yyyy')}
-        </Text>
-      </View>
-      <View style={styles.amountContainer}>
-        <Text
-          style={[
-            styles.amount,
-            { color: item.type === 'income' ? colors.success : colors.danger },
-          ]}
-        >
-          {item.type === 'income' ? '+' : '-'}{formatIndianRupee(item.amount)}
-        </Text>
-        {item.is_recurring && (
-          <Ionicons name="repeat" size={14} color={colors.textSecondary} />
-        )}
-      </View>
-    </TouchableOpacity>
+    <View style={[styles.transactionItem, { backgroundColor: colors.card }]}>
+      <TouchableOpacity
+        style={styles.transactionContent}
+        onPress={() => handleEdit(item)}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: getCategoryColor(item.category_id) + '20' }]}>
+          <Text style={styles.categoryIcon}>{getCategoryIcon(item.category_id)}</Text>
+        </View>
+        <View style={styles.transactionDetails}>
+          <Text style={[styles.categoryName, { color: colors.text }]}>{item.category_name}</Text>
+          <Text style={[styles.transactionNote, { color: colors.textSecondary }]}>
+            {item.note || format(new Date(item.date), 'dd MMM yyyy')}
+          </Text>
+        </View>
+        <View style={styles.amountContainer}>
+          <Text
+            style={[
+              styles.amount,
+              { color: item.type === 'income' ? colors.success : colors.danger },
+            ]}
+          >
+            {item.type === 'income' ? '+' : '-'}{formatIndianRupee(item.amount)}
+          </Text>
+          {item.is_recurring && (
+            <Ionicons name="repeat" size={14} color={colors.textSecondary} />
+          )}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.deleteButton, { backgroundColor: colors.danger + '15' }]}
+        onPress={() => handleDelete(item.id)}
+      >
+        <Ionicons name="trash-outline" size={20} color={colors.danger} />
+      </TouchableOpacity>
+    </View>
   );
 
   const FilterButton = ({ type, label }: { type: FilterType; label: string }) => (
