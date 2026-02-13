@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +18,8 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useStore, Category } from '../../src/store/useStore';
-import { formatIndianRupee, parseIndianRupee } from '../../src/utils/currency';
+import { formatIndianRupee } from '../../src/utils/currency';
+import { format, addDays, subDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
 
 type TransactionType = 'expense' | 'income';
 
@@ -32,13 +34,15 @@ export default function AddScreen() {
   const [note, setNote] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const handleAmountChange = (value: string) => {
-    // Only allow numbers and decimal point
     const cleaned = value.replace(/[^0-9.]/g, '');
     setAmount(cleaned);
   };
@@ -62,7 +66,7 @@ export default function AddScreen() {
       category_id: selectedCategory.id,
       category_name: selectedCategory.name,
       type,
-      date: new Date().toISOString(),
+      date: selectedDate.toISOString(),
       note,
       is_recurring: isRecurring,
     });
@@ -72,19 +76,135 @@ export default function AddScreen() {
     setSelectedCategory(null);
     setNote('');
     setIsRecurring(false);
+    setSelectedDate(new Date());
     setIsSubmitting(false);
 
     Alert.alert('Success', `${type === 'expense' ? 'Expense' : 'Income'} added successfully!`);
   };
 
   const filteredCategories = categories.filter((c) => {
-    // Filter categories based on type
     const incomeCategories = ['Salary', 'Investments'];
     if (type === 'income') {
       return incomeCategories.includes(c.name);
     }
     return !incomeCategories.includes(c.name);
   });
+
+  // Calendar functions
+  const getDaysInMonth = () => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    return eachDayOfInterval({ start, end });
+  };
+
+  const getStartDayOfWeek = () => {
+    const start = startOfMonth(currentMonth);
+    return getDay(start);
+  };
+
+  const renderCalendar = () => {
+    const days = getDaysInMonth();
+    const startDay = getStartDayOfWeek();
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    const emptyDays = Array(startDay).fill(null);
+    const allDays = [...emptyDays, ...days];
+
+    return (
+      <View style={styles.calendarContainer}>
+        {/* Month Navigation */}
+        <View style={styles.monthNav}>
+          <TouchableOpacity 
+            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+            style={styles.monthNavButton}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.monthTitle, { color: colors.text }]}>
+            {format(currentMonth, 'MMMM yyyy')}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+            style={styles.monthNavButton}
+          >
+            <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Week Days */}
+        <View style={styles.weekDaysRow}>
+          {weekDays.map((day) => (
+            <Text key={day} style={[styles.weekDay, { color: colors.textSecondary }]}>
+              {day}
+            </Text>
+          ))}
+        </View>
+
+        {/* Calendar Grid */}
+        <View style={styles.calendarGrid}>
+          {allDays.map((day, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.calendarDay,
+                day && isSameDay(day, selectedDate) && { backgroundColor: colors.primary },
+                day && isSameDay(day, new Date()) && !isSameDay(day, selectedDate) && { borderWidth: 1, borderColor: colors.primary },
+              ]}
+              onPress={() => {
+                if (day) {
+                  Haptics.selectionAsync();
+                  setSelectedDate(day);
+                }
+              }}
+              disabled={!day}
+            >
+              {day && (
+                <Text
+                  style={[
+                    styles.calendarDayText,
+                    { color: isSameDay(day, selectedDate) ? '#FFFFFF' : colors.text },
+                  ]}
+                >
+                  {format(day, 'd')}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity 
+            style={[styles.quickButton, { backgroundColor: colors.inputBg }]}
+            onPress={() => {
+              setSelectedDate(new Date());
+              setCurrentMonth(new Date());
+            }}
+          >
+            <Text style={[styles.quickButtonText, { color: colors.text }]}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.quickButton, { backgroundColor: colors.inputBg }]}
+            onPress={() => {
+              const yesterday = subDays(new Date(), 1);
+              setSelectedDate(yesterday);
+              setCurrentMonth(yesterday);
+            }}
+          >
+            <Text style={[styles.quickButtonText, { color: colors.text }]}>Yesterday</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Confirm Button */}
+        <TouchableOpacity
+          style={[styles.confirmButton, { backgroundColor: colors.primary }]}
+          onPress={() => setShowDatePicker(false)}
+        >
+          <Text style={styles.confirmButtonText}>Confirm</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -173,6 +293,21 @@ export default function AddScreen() {
             )}
           </View>
 
+          {/* Date Picker */}
+          <TouchableOpacity 
+            style={[styles.card, { backgroundColor: colors.card }]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+            <View style={styles.dateRow}>
+              <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+              <Text style={[styles.dateText, { color: colors.text }]}>
+                {format(selectedDate, 'EEEE, dd MMMM yyyy')}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+
           {/* Category Selection */}
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
@@ -258,6 +393,26 @@ export default function AddScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {renderCalendar()}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -333,6 +488,16 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+  },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -384,6 +549,98 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '700',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  // Calendar styles
+  calendarContainer: {
+    paddingBottom: 20,
+  },
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  monthNavButton: {
+    padding: 8,
+  },
+  monthTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  weekDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  weekDay: {
+    width: 40,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  calendarDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+  },
+  calendarDayText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 16,
+  },
+  quickButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  quickButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '700',
   },
 });
