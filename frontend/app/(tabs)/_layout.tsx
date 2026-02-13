@@ -22,7 +22,7 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
         },
       }}
@@ -32,16 +32,16 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pie-chart" size={size} color={color} />
+            <Ionicons name="pie-chart" size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Transactions',
+          title: 'History',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list" size={size} color={color} />
+            <Ionicons name="list" size={22} color={color} />
           ),
         }}
       />
@@ -57,11 +57,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="categories"
+        name="reminders"
         options={{
-          title: 'Categories',
+          title: 'Reminders',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+            <Ionicons name="notifications" size={22} color={color} />
           ),
         }}
       />
@@ -70,7 +70,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons name="settings" size={22} color={color} />
           ),
         }}
       />
@@ -80,12 +80,12 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -20,
+    marginTop: -16,
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
