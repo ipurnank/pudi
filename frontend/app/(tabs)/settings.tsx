@@ -155,13 +155,6 @@ export default function SettingsScreen() {
             subtitle={isExporting ? 'Exporting...' : 'Download your data as CSV'}
             onPress={handleExportCSV}
           />
-          <SettingItem
-            icon="trash"
-            title="Reset All Data"
-            subtitle="Delete all transactions and categories"
-            onPress={handleResetData}
-            danger
-          />
         </View>
 
         {/* About Section */}
