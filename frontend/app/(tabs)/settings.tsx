@@ -23,25 +23,6 @@ export default function SettingsScreen() {
   const { exportCSV } = useStore();
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleResetData = () => {
-    Alert.alert(
-      'Reset All Data',
-      'This will permanently delete all your transactions, categories, and reminders. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await resetAllData();
-            Alert.alert('Success', 'All data has been reset');
-          },
-        },
-      ]
-    );
-  };
-
   const handleExportCSV = async () => {
     try {
       setIsExporting(true);
